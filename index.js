@@ -260,12 +260,23 @@ const buildProgram = () => t.program([
 
 caporal
   .version('1.0.0')
+  .option('-m, --minify', 'Minify resulting output.', caporal.BOOL)
   .argument('<file>', 'Path to the entry point file.')
-  .action((args) => {
+  .action((args, options) => {
+    const presets = [];
+
+    if (options.minify) {
+      presets.push('minify');
+    }
+
     // Construct the entry level module.
     entryLevelModule = createModule(fs.realpathSync(args.file));
     // Bundle everything into single program and output it to stdout.
-    process.stdout.write(babel.transformFromAst(buildProgram()).code);
+    process.stdout.write(babel.transformFromAst(
+      buildProgram(),
+      null,
+      { presets }
+    ).code);
   });
 
 caporal.parse(process.argv);

@@ -12,6 +12,7 @@
     "@babel/core": "^7.0.0-beta.41",
     "@babel/traverse": "^7.0.0-beta.41",
     "@babel/types": "^7.0.0-beta.41",
+    "babel-preset-minify": "^0.3.0",
     "babylon": "^6.18.0",
     "caporal": "^0.10.0"
   }
