@@ -9,7 +9,9 @@
   "author": "Rauli Laine <rauli.laine@iki.fi>",
   "license": "MIT",
   "dependencies": {
-    "babel-core": "^6.26.0",
+    "@babel/core": "^7.0.0-beta.41",
+    "@babel/traverse": "^7.0.0-beta.41",
+    "@babel/types": "^7.0.0-beta.41",
     "babylon": "^6.18.0",
     "caporal": "^0.10.0"
   }
