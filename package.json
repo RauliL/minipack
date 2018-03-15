@@ -1,0 +1,16 @@
+{
+  "name": "minipack",
+  "version": "1.0.0",
+  "description": "Minimal asset bundler",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rauli Laine <rauli.laine@iki.fi>",
+  "license": "MIT",
+  "dependencies": {
+    "babel-core": "^6.26.0",
+    "babylon": "^6.18.0",
+    "caporal": "^0.10.0"
+  }
+}
