@@ -8,6 +8,93 @@ const traverse = require('@babel/traverse').default;
 const resolvedModules = {};
 let entryLevelModule;
 
+const processImportDeclaration = (path) => {
+  const { specifiers, source } = path.node;
+  let resolvedModule;
+
+  if (!t.isStringLiteral(source)) {
+    throw new Error('TODO: Complaint about dynamic imports.');
+  }
+
+  resolvedModule = resolveModule(source.value);
+
+  // TODO: __minipack_require__(resolvedModule.index) to named variable.
+  // TODO: Process each named import and create variable declarations from
+  // them.
+
+  throw new Error('TODO: Complete import processing');
+};
+
+const processRequireCall = (path) => {
+  const { arguments } = path.node;
+  let resolvedModule;
+
+  if (arguments.length !== 1) {
+    throw new Error('TODO: Complain about wrong number of arguments');
+  } else if (!t.isStringLiteral(arguments[0])) {
+    throw new Error('TODO: Complain about dynamic import');
+  }
+
+  resolvedModule = resolvedModule(arguments[0].value);
+  path.replaceWith(
+    t.callExpression(
+      t.identifier('__minipack_require__'),
+      [t.numericLiteral(resolvedModule.index)]
+    )
+  );
+};
+
+const processDefaultExport = (path) => {
+  path.replaceWith(t.assignmentExpression(
+    '=',
+    t.memberExpression(
+      t.identifier('exports'),
+      t.identifier('default')
+    ),
+    path.node.declaration
+  ));
+};
+
+const processExport = (path) => {
+  if (t.isVariableDeclaration(path.node.declaration)) {
+    path.replaceWithMultiple(path.node.declaration.declarations.map((declaration) =>
+      t.variableDeclaration(
+        path.node.declaration.kind,
+        [t.variableDeclarator(
+          declaration.id,
+          t.assignmentExpression(
+            '=',
+            t.memberExpression(
+              t.identifier('exports'),
+              declaration.id
+            ),
+            declaration.init
+          )
+        )]
+      )
+    ));
+  } else if (t.isFunctionDeclaration(path.node.declaration)) {
+    path.replaceWithMultiple([
+      path.node.declaration,
+      t.expressionStatement(
+        t.assignmentExpression(
+          '=',
+          t.memberExpression(t.identifier('exports'), path.node.declaration.id),
+          path.node.declaration.id
+        )
+      )
+    ]);
+  } else {
+    path.replaceWithMultiple(path.node.specifiers.map((specifier) => t.expressionStatement(
+      t.assignmentExpression(
+        '=',
+        t.memberExpression(t.identifier('exports'), specifier.exported),
+        specifier.local
+      )
+    )));
+  }
+}
+
 const createModule = (path) => {
   const sourceCode = fs.readFileSync(path, 'utf8');
   const ast = babylon.parse(sourceCode, { sourceType: 'module' });
@@ -23,72 +110,15 @@ const createModule = (path) => {
   traverse(ast, {
     enter (path) {
       if (t.isImportDeclaration(path.node)) {
-        throw new Error('TODO: Convert import statement into require function call');
+        processImportDeclaration(path);
       } else if (t.isCallExpression(path.node) && t.isIdentifier(path.node.callee, { name: 'require' })) {
-        let resolvedModule;
-
-        if (path.node.arguments.length !== 1) {
-          throw new Error('TODO: Complain about wrong number of arguments');
-        } else if (!t.isStringLiteral(path.node.arguments[0])) {
-          throw new Error('TODO: Complain about dynamic import');
-        }
-
-        resolvedModule = resolveModule(path.node.arguments[0].value);
-        path.replaceWith(
-          t.callExpression(
-            t.identifier('__minipack_require__'),
-            [t.numericLiteral(resolvedModule.index)]
-          )
-        );
+        processRequireCall(path);
       } else if (t.isExportAllDeclaration(path.node)) {
         throw new Error('TODO: export * from "mod"');
       } else if (t.isExportDefaultDeclaration(path.node)) {
-        path.replaceWith(t.assignmentExpression(
-          '=',
-          t.memberExpression(
-            t.identifier('exports'),
-            t.identifier('default')
-          ),
-          path.node.declaration
-        ));
+        processDefaultExport(path);
       } else if (t.isExportNamedDeclaration(path.node)) {
-        if (t.isVariableDeclaration(path.node.declaration)) {
-          path.replaceWithMultiple(path.node.declaration.declarations.map((declaration) =>
-            t.variableDeclaration(
-              path.node.declaration.kind,
-              [t.variableDeclarator(
-                declaration.id,
-                t.assignmentExpression(
-                  '=',
-                  t.memberExpression(
-                    t.identifier('exports'),
-                    declaration.id
-                  ),
-                  declaration.init
-                )
-              )]
-            )
-          ));
-        } else if (t.isFunctionDeclaration(path.node.declaration)) {
-          path.replaceWithMultiple([
-            path.node.declaration,
-            t.expressionStatement(
-              t.assignmentExpression(
-                '=',
-                t.memberExpression(t.identifier('exports'), path.node.declaration.id),
-                path.node.declaration.id
-              )
-            )
-          ]);
-        } else {
-          path.replaceWithMultiple(path.node.specifiers.map((specifier) => t.expressionStatement(
-            t.assignmentExpression(
-              '=',
-              t.memberExpression(t.identifier('exports'), specifier.exported),
-              specifier.local
-            )
-          )));
-        }
+        processExport(path);
       }
     }
   });
@@ -305,8 +335,10 @@ caporal
   .option('-m, --minify', 'Minify resulting output.', caporal.BOOL)
   .argument('<file>', 'Path to the entry point file.')
   .action((args, options) => {
-    //const presets = ['env'];
     const presets = [];
+
+    // TODO: Find out why 'env' preset in Babel currently gives us infinite
+    // recursion with it's own typeof transformation.
 
     if (options.minify) {
       presets.push('minify');
