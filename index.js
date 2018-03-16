@@ -191,7 +191,10 @@ const buildProgram = () => t.program([
                     ),
                     t.ifStatement(
                       t.identifier('module'),
-                      t.returnStatement(t.identifier('module'))
+                      t.returnStatement(t.memberExpression(
+                        t.identifier('module'),
+                        t.identifier('exports')
+                      ))
                     ),
                     t.expressionStatement(t.assignmentExpression(
                       '=',
@@ -200,14 +203,6 @@ const buildProgram = () => t.program([
                         t.objectProperty(
                           t.identifier('exports'),
                           t.objectExpression([])
-                        ),
-                        t.objectProperty(
-                          t.identifier('id'),
-                          t.identifier('moduleId')
-                        ),
-                        t.objectProperty(
-                          t.identifier('loaded'),
-                          t.booleanLiteral(false)
                         )
                       ])
                     )),
@@ -232,6 +227,10 @@ const buildProgram = () => t.program([
                         ),
                         t.identifier('__minipack_require__')
                       ]
+                    )),
+                    t.returnStatement(t.memberExpression(
+                      t.identifier('module'),
+                      t.identifier('exports')
                     ))
                   ])
                 ),
