@@ -41,11 +41,54 @@ const createModule = (path) => {
           )
         );
       } else if (t.isExportAllDeclaration(path.node)) {
-        throw new Error('TODO: Convert export * from "mod"');
+        throw new Error('TODO: export * from "mod"');
       } else if (t.isExportDefaultDeclaration(path.node)) {
-        throw new Error('TODO: Convert export default foo');
+        path.replaceWith(t.assignmentExpression(
+          '=',
+          t.memberExpression(
+            t.identifier('exports'),
+            t.identifier('default')
+          ),
+          path.node.declaration
+        ));
       } else if (t.isExportNamedDeclaration(path.node)) {
-        throw new Error('TODO: Convert named export');
+        if (t.isVariableDeclaration(path.node.declaration)) {
+          path.replaceWithMultiple(path.node.declaration.declarations.map((declaration) =>
+            t.variableDeclaration(
+              path.node.declaration.kind,
+              [t.variableDeclarator(
+                declaration.id,
+                t.assignmentExpression(
+                  '=',
+                  t.memberExpression(
+                    t.identifier('exports'),
+                    declaration.id
+                  ),
+                  declaration.init
+                )
+              )]
+            )
+          ));
+        } else if (t.isFunctionDeclaration(path.node.declaration)) {
+          path.replaceWithMultiple([
+            path.node.declaration,
+            t.expressionStatement(
+              t.assignmentExpression(
+                '=',
+                t.memberExpression(t.identifier('exports'), path.node.declaration.id),
+                path.node.declaration.id
+              )
+            )
+          ]);
+        } else {
+          path.replaceWithMultiple(path.node.specifiers.map((specifier) => t.expressionStatement(
+            t.assignmentExpression(
+              '=',
+              t.memberExpression(t.identifier('exports'), specifier.exported),
+              specifier.local
+            )
+          )));
+        }
       }
     }
   });
@@ -262,7 +305,8 @@ caporal
   .option('-m, --minify', 'Minify resulting output.', caporal.BOOL)
   .argument('<file>', 'Path to the entry point file.')
   .action((args, options) => {
-    const presets = ['env'];
+    //const presets = ['env'];
+    const presets = [];
 
     if (options.minify) {
       presets.push('minify');
