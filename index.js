@@ -263,7 +263,7 @@ caporal
   .option('-m, --minify', 'Minify resulting output.', caporal.BOOL)
   .argument('<file>', 'Path to the entry point file.')
   .action((args, options) => {
-    const presets = [];
+    const presets = ['env'];
 
     if (options.minify) {
       presets.push('minify');
